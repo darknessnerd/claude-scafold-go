@@ -10,7 +10,7 @@
     "skills/"
   ],
   "dependencies": {
-    "@team/caveman-skill": "^1.0.0"
+    "caveman-installer": "github:JuliusBrussee/caveman"
   },
   "scripts": {
     "test": "node bin/install.js --dry-run"
