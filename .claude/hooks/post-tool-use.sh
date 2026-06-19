@@ -5,11 +5,11 @@
 # Effect: audit log + stderr alert on failures — does NOT block or undo the tool
 #
 # How Claude Code calls this:
-#   $1 = tool name   (e.g. "Bash", "Edit", "Write")
-#   $2 = exit code   (0 = success, non-zero = tool reported an error)
+#   - passes a JSON object via stdin with tool_name and tool_result.exit_code
 
-TOOL="$1"
-EXIT_CODE="$2"
+INPUT=$(cat /dev/stdin)
+TOOL=$(echo "$INPUT" | jq -r '.tool_name // empty')
+EXIT_CODE=$(echo "$INPUT" | jq -r '.tool_result.exit_code // 0')
 
 # Append one line per tool call to a local audit log.
 # The log lives inside .claude/logs/ — add that path to .gitignore

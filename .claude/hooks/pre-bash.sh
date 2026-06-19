@@ -2,13 +2,12 @@
 # Hook: pre-bash
 # Event:  PreToolUse (Bash)
 # Fires:  before every Bash tool call Claude makes
-# Effect: if a blocked pattern matches → exit 1 → Claude never runs the command
+# Effect: if a blocked pattern matches → exit 2 → Claude never runs the command
 #
 # How Claude Code calls this:
-#   - passes the full command string as $1
-#   - falls back to stdin if $1 is empty (older versions)
+#   - passes a JSON object via stdin with the command at .tool_input.command
 
-COMMAND="${1:-$(cat)}"
+COMMAND=$(jq -r '.tool_input.command' < /dev/stdin)
 
 # Patterns blocked unconditionally — regardless of settings.json allow list.
 # settings.json is the first gate; this script is the hard safety net.
@@ -26,7 +25,7 @@ for pattern in "${BLOCKED_PATTERNS[@]}"; do
   # -q: silent, -i: case-insensitive
   if echo "$COMMAND" | grep -qi "$pattern"; then
     echo "BLOCKED: command matches forbidden pattern '$pattern'" >&2
-    exit 1  # non-zero → Claude Code aborts the tool call and reports the error
+    exit 2  # exit 2 → Claude Code blocks the tool call and reports the error
   fi
 done
 

@@ -9,25 +9,17 @@ Not an autonomous agent — confirm before destructive or irreversible ops.
 
 ## Architecture
 
-> Fill in: system overview, major components, data flow, key boundaries.
-
 See `.claude/rules/01-architecture.md` for full details.
 
 ## Conventions
-
-> Fill in: language, framework, naming, file layout, import style.
 
 See `.claude/rules/02-conventions.md` for full details.
 
 ## Testing
 
-> Fill in: test framework, coverage expectations, what must have tests.
-
 See `.claude/rules/03-testing.md` for full details.
 
 ## Security
-
-> Fill in: secret handling, auth model, what never to log or commit.
 
 See `.claude/rules/04-security.md` for full details.
 

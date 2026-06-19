@@ -21,9 +21,9 @@ Team-shared Claude AI configuration for consistent, safe, context-aware behavior
 | Path | Status | Notes |
 |------|--------|-------|
 | `.claude/settings.json` | Live | Permissions + hooks wired. `go lint` entry is stale — `go lint` was removed; use `golangci-lint`. |
-| `.claude/hooks/pre-bash.sh` | Live but fragile | Reads command from `$1` with stdin fallback. Claude Code passes JSON via stdin — fallback reads raw JSON, not the command. Needs `jq` to extract `.tool_input.command` for reliable pattern matching. |
-| `.claude/hooks/post-tool-use.sh` | Bug | Expects `$1=tool $2=exit_code` but Claude Code sends JSON via stdin. `$TOOL` and `$EXIT_CODE` are always empty. Logs nothing useful. Fix: parse stdin JSON with `jq`. |
-| `.claude/rules/*.md` | Stubs | All four rule files have placeholder sections. Do not invent content — ask the user to fill them in. |
+| `.claude/hooks/pre-bash.sh` | Live | Parses stdin JSON via `jq`. Blocks on `exit 2`. Requires `jq` installed. |
+| `.claude/hooks/post-tool-use.sh` | Live | Parses stdin JSON via `jq`. Writes audit log + stderr alert on Edit/Write/Bash failures. |
+| `.claude/rules/*.md` | Partial stubs | Scaffold defaults filled in (layer layout, interfaces, error handling, SOLID, security vuln classes). Team-specific sections (system overview, auth model, coverage %) still need filling. |
 | `.claude/commands/` | Live | `/review`, `/standup`, `/db-schema` are functional. |
 | `.claude/skills/` | Live | `on-new-file`, `pre-commit-check`, `explain-error`, `c4-architecture`, `solid-principles`, `frontend-design` auto-trigger. |
 | `.mcp.json` | Live config, disabled locally | All three MCP servers are disabled in `settings.local.json`. Confirm env vars are set before assuming MCP works. |
@@ -41,10 +41,9 @@ Team-shared Claude AI configuration for consistent, safe, context-aware behavior
 
 **Known issues to fix before production use:**
 
-1. `post-tool-use.sh` — parse stdin JSON to get tool name and exit code.
-2. `pre-bash.sh` — parse stdin JSON to get the command string before pattern matching.
-3. `settings.json` — replace `Bash(go lint:*)` with `Bash(golangci-lint:*)`.
-4. `main.go` — remove GoLand TIP comments; fix `fmt.Println` → `fmt.Printf` for format verbs.
+1. `settings.json` — replace `Bash(go lint:*)` with `Bash(golangci-lint:*)`.
+2. `main.go` — remove GoLand TIP comments; fix `fmt.Println` → `fmt.Printf` for format verbs.
+3. Rules stubs — fill team-specific sections: system overview, auth model, coverage expectations.
 
 ---
 
@@ -109,7 +108,32 @@ Claude reads these every session — keep them accurate. Until filled, Claude tr
 chmod +x .claude/hooks/*.sh
 ```
 
-See Known Issues above — both hooks need stdin JSON parsing before they work correctly.
+Both hooks require `jq`. Install it if not present: `apt install jq` / `brew install jq`.
+
+---
+
+## Minimal Fork Path
+
+Start with the smallest viable structure and grow as needed. Do not add layers before you need them.
+
+```
+Stage 1 — no database yet
+  cmd/main.go
+  internal/
+    domain/        (value types + errors only)
+    service/       (business logic, defines its own interfaces)
+    handler/       (HTTP, imports service only)
+
+Stage 2 — add persistence
+  internal/
+    repository/    (add when you have a real DB; implements interface defined in service/)
+
+Stage 3 — scale
+  Split service/ into sub-packages by domain noun
+  Add internal/platform/ for cross-cutting concerns (logging, tracing, health)
+```
+
+Rule: never add a layer "just in case." Add it when the next concrete feature requires it.
 
 ---
 

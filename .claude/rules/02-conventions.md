@@ -15,6 +15,52 @@
 
 > See `.claude/skills/solid-principles.md` for package naming rules derived from SRP.
 
+## Interfaces
+
+**Interfaces belong in the consuming package, not the implementing package.** The package that uses a value of an interface type defines the interface — not the package that implements it. This is confirmed Go idiom from [go.dev/wiki/CodeReviewComments](https://go.dev/wiki/CodeReviewComments#interfaces): "Go interfaces generally belong in the package that uses values of the interface type, not the package that implements those values."
+
+**Do not pre-define interfaces for mocking.** Define interfaces only when you have two or more implementations, or when the consuming package needs to isolate itself from a specific dependency. Per go.dev/wiki/CodeReviewComments: "Do not define interfaces before they are used."
+
+**Never store `context.Context` in a struct.** Pass it as the first parameter to every function that needs it. Per pkg.go.dev/context: "Do not store Contexts inside a struct type; instead, pass a Context explicitly to each function that needs it."
+
+```go
+// WRONG — interface defined in the implementing package:
+// domain/user.go
+package domain
+type UserStore interface {   // ← defined here, but domain doesn't use it
+    Find(id string) (User, error)
+}
+
+// repository/postgres.go
+package repository
+type PostgresStore struct{ ... }
+func (p *PostgresStore) Find(id string) (domain.User, error) { ... }
+
+// service/user.go — now imports domain just to name the interface
+package service
+import "domain"
+type UserService struct{ store domain.UserStore }
+
+
+// RIGHT — interface defined in the consuming package (service):
+// domain/user.go
+package domain
+type User struct{ ID, Name string }   // ← only value types here
+
+// service/user.go
+package service
+// Defined here, by the consumer that needs it:
+type userStore interface {
+    Find(id string) (domain.User, error)
+}
+type UserService struct{ store userStore }
+
+// repository/postgres.go — satisfies the interface implicitly; no domain import needed
+package repository
+type PostgresStore struct{ ... }
+func (p *PostgresStore) Find(id string) (domain.User, error) { ... }
+```
+
 ## File Layout
 
 <!-- Team: describe your actual module/package structure here -->
@@ -24,10 +70,10 @@
 cmd/
   main.go              ← entry point, wires dependencies
 internal/
-  domain/              ← interfaces + value types (no external imports)
-  service/             ← business logic (imports domain only)
-  repository/          ← data access (imports domain only)
-  handler/             ← HTTP/gRPC (imports service only)
+  domain/              ← value types only (structs, enums, sentinel errors — no interfaces)
+  service/             ← business logic; defines interfaces it needs from storage
+  repository/          ← data access; implements service interfaces implicitly
+  handler/             ← HTTP/gRPC; defines interfaces it needs from service layer
 ```
 
 One file per logical concern. No `utils.go` or `helpers.go` — if it needs a file, it needs a package.

@@ -116,10 +116,9 @@ type UserWriter interface {
 > High-level policy must not depend on low-level detail. Both depend on abstractions.
 
 **Go checks:**
-- Constructors accept interfaces, not concrete types (`func New(repo UserReader)` not `func New(db *PostgresRepo)`)
+- Constructors accept interfaces, not concrete types (`func New(repo userStore)` not `func New(db *PostgresRepo)`)
 - Business logic packages must not import infrastructure packages (`service` must not import `postgres`, `redis`, `kafka`)
-- Dependency direction: `handler → service → domain ← repository`. `domain` has no outward imports.
-- `domain` package contains interfaces; `infrastructure` packages implement them
+- **The consuming layer defines the interface it needs** — not a shared `domain/` package. `service/` defines `type userStore interface {...}` for what it needs from storage. `handler/` defines `type userService interface {...}` for what it needs from business logic. `domain/` contains only value types (structs, enums, sentinel errors) — no interfaces.
 
 **Import graph rule for this scaffold:**
 
@@ -128,13 +127,18 @@ cmd/
  └─ main.go          ← wires everything (only place allowed to import all layers)
 
 internal/
- ├─ domain/          ← interfaces + value types. Zero external imports.
- ├─ service/         ← imports domain only
- ├─ repository/      ← imports domain only; implements domain interfaces
- └─ handler/         ← imports service only
+ ├─ domain/          ← value types only (User, Order, ErrNotFound…). Zero external imports.
+ │                      No interfaces — consumers define the interfaces they need.
+ ├─ service/         ← imports domain; defines type userStore interface{} for storage
+ ├─ repository/      ← imports domain; implicitly satisfies service.userStore
+ └─ handler/         ← imports domain; defines type userService interface{} for business logic
 ```
 
+**Why this matters:** Defining interfaces in `domain/` creates a shared abstraction that every layer couples to. Defining them in the consuming package means the interface is as small as the consumer actually needs (ISP), and `repository` can satisfy multiple different consumer interfaces without knowing about any of them.
+
 **Smell:** `service` package has `import "database/sql"` — direct DB dependency in business logic.
+
+**Also a smell:** `domain/` package contains interface types — this forces the interface definition to live in the wrong package and typically produces over-broad interfaces.
 
 **Ask:** "If I swap Postgres for MongoDB, how many packages change?" Answer should be: only `repository`.
 
@@ -162,7 +166,7 @@ When reporting a SOLID finding:
 
 Example:
 ```
-**[DIP]** `service/user.go:12` — imports `repository/postgres` directly → accept `domain.UserReader` interface in constructor instead
+**[DIP]** `service/user.go:12` — imports `repository/postgres` directly → define a `userStore` interface in `service/` and accept that in the constructor instead
 ```
 
 Report findings with severity matching the `/review` command convention: `critical` / `warning` / `suggestion`.
