@@ -46,7 +46,6 @@
     ]
   },
   "hooks": {
-    "_comment": "Hook scripts must be executable (chmod +x). See .claude/hooks/.",
     "PreToolUse": [
       {
         "matcher": "Bash",

@@ -8,6 +8,46 @@
 
 Team-shared Claude AI configuration for consistent, safe, context-aware behavior across the codebase.
 
+---
+
+## Agent Session Context
+
+> **Claude: read this section at the start of every session.**
+
+**What this repo is:** A scaffold template for wiring Claude Code into a Go project. It ships pre-configured hooks, permissions, MCP connections, rules, commands, and skills. Teams fork it and fill in the stubs.
+
+**What is live vs stub:**
+
+| Path | Status | Notes |
+|------|--------|-------|
+| `.claude/settings.json` | Live | Permissions + hooks wired. `go lint` entry is stale — `go lint` was removed; use `golangci-lint`. |
+| `.claude/hooks/pre-bash.sh` | Live but fragile | Reads command from `$1` with stdin fallback. Claude Code passes JSON via stdin — fallback reads raw JSON, not the command. Needs `jq` to extract `.tool_input.command` for reliable pattern matching. |
+| `.claude/hooks/post-tool-use.sh` | Bug | Expects `$1=tool $2=exit_code` but Claude Code sends JSON via stdin. `$TOOL` and `$EXIT_CODE` are always empty. Logs nothing useful. Fix: parse stdin JSON with `jq`. |
+| `.claude/rules/*.md` | Stubs | All four rule files have placeholder sections. Do not invent content — ask the user to fill them in. |
+| `.claude/commands/` | Live | `/review`, `/standup`, `/db-schema` are functional. |
+| `.claude/skills/` | Live | `on-new-file`, `pre-commit-check`, `explain-error`, `c4-architecture`, `solid-principles`, `frontend-design` auto-trigger. |
+| `.mcp.json` | Live config, disabled locally | All three MCP servers are disabled in `settings.local.json`. Confirm env vars are set before assuming MCP works. |
+| `main.go` | Placeholder | GoLand demo code — not the real application entry point. |
+| `go.mod` | Placeholder | Module named `agent-conf-skeleton`. Rename when forking. |
+
+**Key invariants — maintain these when editing:**
+
+- Never write secrets, tokens, or credentials to any file.
+- Never modify `.env` files (blocked by hook and deny list).
+- `CLAUDE.local.md` is gitignored — personal preferences live there, not in `CLAUDE.md`.
+- The four rule files (`.claude/rules/*.md`) are stubs until the team fills them in. Treat missing content as "not defined yet", not as permission to invent conventions.
+- MCP servers (GitHub, Postgres, Datadog) require env vars. If `settings.local.json` has `disabledMcpjsonServers`, those connections are off regardless of `.mcp.json`.
+- Hook scripts must be executable: `chmod +x .claude/hooks/*.sh`.
+
+**Known issues to fix before production use:**
+
+1. `post-tool-use.sh` — parse stdin JSON to get tool name and exit code.
+2. `pre-bash.sh` — parse stdin JSON to get the command string before pattern matching.
+3. `settings.json` — replace `Bash(go lint:*)` with `Bash(golangci-lint:*)`.
+4. `main.go` — remove GoLand TIP comments; fix `fmt.Println` → `fmt.Printf` for format verbs.
+
+---
+
 ## How It Works
 
 Claude reads configuration files at startup. The structure splits concerns:
@@ -48,6 +88,8 @@ export DD_APP_KEY=...
 export DD_SITE=datadoghq.eu   # or datadoghq.com
 ```
 
+If you have a `settings.local.json` with `disabledMcpjsonServers`, remove the entries you want active.
+
 ### 3. Fill in the rules
 
 Each file in `.claude/rules/` has placeholder sections. Fill them in once:
@@ -59,7 +101,15 @@ Each file in `.claude/rules/` has placeholder sections. Fill them in once:
 .claude/rules/04-security.md      → secret handling, auth model, vuln classes
 ```
 
-Claude reads these every session — keep them accurate.
+Claude reads these every session — keep them accurate. Until filled, Claude treats them as undefined.
+
+### 4. Fix the hooks
+
+```bash
+chmod +x .claude/hooks/*.sh
+```
+
+See Known Issues above — both hooks need stdin JSON parsing before they work correctly.
 
 ---
 
@@ -86,6 +136,9 @@ Skills are self-activating — Claude applies them without being asked.
 | `on-new-file` | Claude just created a source file |
 | `pre-commit-check` | Claude is about to suggest a `git commit` |
 | `explain-error` | A command exited non-zero |
+| `c4-architecture` | Designing, diagramming, or documenting system architecture; filling `01-architecture.md` |
+| `solid-principles` | Creating a package, designing an interface, or reviewing component structure |
+| `frontend-design` | Building or reviewing web UI — design tokens (3-tier), typography constraints, WCAG AA accessibility, component states |
 | `caveman` | User types `/caveman` — activates compressed response mode |
 
 **To add a skill:** create `.claude/skills/your-skill.md`. Start with a `**Trigger:**` line so Claude knows when to apply it.
@@ -178,7 +231,7 @@ Hooks must be executable:
 chmod +x .claude/hooks/*.sh
 ```
 
-Wire them in `.claude/settings.json` under the `hooks` key (see Claude Code docs for event names).
+**Note:** Claude Code passes hook payloads as JSON via stdin, not positional args. Both hook scripts need updating to parse stdin with `jq`. See Known Issues in the Agent Session Context section above.
 
 ---
 
@@ -195,7 +248,7 @@ Edit the lists to match your project's toolchain. The skeleton ships with safe d
 
 ## Rules vs CLAUDE.md
 
-`CLAUDE.md` is the summary — short enough to read in 30 seconds.
+`CLAUDE.md` is the summary — short enough to read in 30 seconds.  
 `.claude/rules/*.md` are the chapters — full detail Claude uses when writing code.
 
 Both are always loaded. Keep `CLAUDE.md` as an index; put specifics in rules.
@@ -208,4 +261,5 @@ Both are always loaded. Keep `CLAUDE.md` as an index; put specifics in rules.
 2. Copy env var template (share out-of-band, never commit)
 3. Edit `CLAUDE.local.md` with personal preferences
 4. Run `chmod +x .claude/hooks/*.sh`
-5. Start Claude — configuration is automatic
+5. Check `settings.local.json` — remove any `disabledMcpjsonServers` you need active
+6. Start Claude — configuration is automatic
