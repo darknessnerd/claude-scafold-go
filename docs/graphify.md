@@ -106,6 +106,22 @@ graphify-out/
   cache/            ← SHA256 cache, skip to .gitignore
 ```
 
+### What to Commit vs Ignore
+
+| File | Commit? | Why |
+|------|---------|-----|
+| `graphify-out/graph.json` | ✅ Yes | Persists across sessions — teammates query without rebuilding |
+| `graphify-out/GRAPH_REPORT.md` | ✅ Yes | Human-readable audit trail, useful in PRs |
+| `graphify-out/graph.html` | ✅ Yes | Shareable for slides — no server needed |
+| `graphify-out/cache/` | ❌ Ignore | Per-file SHA256 cache, reconstructed automatically |
+| `graphify-out/cost.json` | ⚠️ Optional | Tracks team token spend across runs |
+| `graphify-out/.graphify_*` | ❌ Ignore | Temp files, deleted after each run |
+
+Add to `.gitignore`:
+```
+graphify-out/cache/
+```
+
 ## Privacy
 
 - **Code** — processed 100% locally via tree-sitter. No API calls.

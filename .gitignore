@@ -4,3 +4,4 @@ CLAUDE.local.md
 node_modules/
 .claude/logs/
 .claude/skills/caveman.md
+graphify-out/cache/
