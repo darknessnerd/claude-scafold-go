@@ -1,11 +1,13 @@
 # Architecture
 
-> Team: fill system overview, data flow, and external dependencies.
 > Layer structure and boundaries below are scaffold defaults — override if your layout differs.
 
 ## System Overview
 
-<!-- High-level: what this system does, who uses it, what problem it solves -->
+<!-- Fill in: what this service does (1-2 sentences), who its users or callers are,
+     and the core problem it solves. Example:
+     "HTTP API that manages user accounts and authentication for the mobile app.
+      Consumed by the iOS/Android clients and the internal admin dashboard." -->
 
 ## Components
 
@@ -27,8 +29,13 @@ Recommended Go layer layout. Rename or split as needed — but keep the import d
 
 ## Data Flow
 
-<!-- Sequence: how a request enters the system and moves through layers -->
-<!-- Example: HTTP request → handler → service → repository → DB → response -->
+<!-- Fill in: the request path through the layers, including auth and DB steps. Example:
+     1. HTTP request arrives → TLS termination at load balancer
+     2. JWT middleware validates token, stores claims in context
+     3. Handler decodes request body, calls service method with ctx
+     4. Service applies business rules, calls repository interface
+     5. Repository executes parameterized SQL, returns domain types
+     6. Handler encodes response, sets status code -->
 
 ## Key Boundaries
 

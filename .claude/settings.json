@@ -16,6 +16,8 @@
       "Bash(go lint:*)",
       "Bash(go fmt:*)",
       "Bash(go mod:*)",
+      "Bash(golangci-lint:*)",
+      "Bash(gofumpt:*)",
 
       "Bash(git status)",
       "Bash(git diff:*)",

@@ -1,7 +1,6 @@
 # Security
 
 > Claude must follow these rules without exception.
-> Team: fill in Auth Model. All other sections are enforced as written.
 
 ## Secrets
 
@@ -13,8 +12,27 @@
 
 ## Auth Model
 
-<!-- Team: fill in who authenticates, how tokens flow, where they're validated -->
-<!-- Example: JWT signed with RS256, validated in handler middleware, claims passed via context.Context -->
+- **Validation layer:** HTTP middleware in `internal/handler/` only — never in `internal/service/` or `internal/domain/`
+- **Algorithm:** RS256 (asymmetric) for any multi-service, OAuth, or third-party scenario — public key can be freely distributed. HS256 only in closed, fully-trusted single-service deployments where both signer and verifier are equally protected.
+- **Library:** `github.com/golang-jwt/jwt/v5` (JWT/JWS only, simpler API) or `github.com/lestrrat-go/jwx/v2` (full JOSE suite, JWE, JWKS tooling). **Always** restrict accepted algorithms — never omit `jwt.WithValidMethods()` / `jwt.WithKey()`. Omitting it leaves the parser open to algorithm-confusion attacks (RS256 → HS256 downgrade).
+- **Key rotation:** Use `jwk.Cache` (`lestrrat-go/jwx`) for automatic background JWKS refresh from a stable provider (Google, AWS, Azure). For `golang-jwt/jwt` users, use `github.com/MicahParks/keyfunc` to bridge JWKS endpoints into `jwt.Keyfunc` with on-demand refresh on unknown `kid`. Retrieved JWKS objects are read-only shared state — never mutate.
+- **Claims propagation:** After validation, store parsed claims in `context.Context` using an **unexported package-local key type** — never a plain string or exported type. Expose only `NewContext(ctx, claims)` and `FromContext(ctx)` accessors. Service layer consumes context values; it never receives raw tokens.
+
+```go
+// internal/handler/auth.go — canonical pattern
+type contextKey struct{}
+
+func NewContext(ctx context.Context, claims Claims) context.Context {
+    return context.WithValue(ctx, contextKey{}, claims)
+}
+
+func FromContext(ctx context.Context) (Claims, bool) {
+    c, ok := ctx.Value(contextKey{}).(Claims)
+    return c, ok
+}
+```
+
+<!-- Team: specify signing key source (HSM, KMS, identity provider JWKS URL) and token lifetime (access token TTL, refresh token strategy) -->
 
 ## What Claude Must Never Do
 

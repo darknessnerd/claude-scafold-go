@@ -1,8 +1,5 @@
 # Conventions
 
-> Team: fill in File Layout, Error Handling, Imports, Forbidden Patterns.
-> Naming rules below are Go standard — override only if your team diverges.
-
 ## Naming
 
 - Files: `snake_case`
@@ -79,8 +76,6 @@ internal/
 One file per logical concern. No `utils.go` or `helpers.go` — if it needs a file, it needs a package.
 
 ## Error Handling
-
-<!-- Team: fill in your wrapping style and logging rules -->
 
 Defaults until overridden:
 
