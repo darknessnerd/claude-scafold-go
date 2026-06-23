@@ -23,6 +23,10 @@ See `.claude/rules/03-testing.md` for full details.
 
 See `.claude/rules/04-security.md` for full details.
 
+## CI
+
+See `.claude/rules/05-ci.md` for full details.
+
 ## What Claude Can Touch
 
 Controlled via `.claude/settings.json`. Summary:

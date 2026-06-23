@@ -23,8 +23,8 @@ Team-shared Claude AI configuration for consistent, safe, context-aware behavior
 | `.claude/settings.json` | Live | Permissions + hooks wired. `go lint` entry is stale — `go lint` was removed; use `golangci-lint`. |
 | `.claude/hooks/pre-bash.sh` | Live | Parses stdin JSON via `jq`. Blocks on `exit 2`. Requires `jq` installed. |
 | `.claude/hooks/post-tool-use.sh` | Live | Parses stdin JSON via `jq`. Writes audit log + stderr alert on Edit/Write/Bash failures. |
-| `.claude/rules/*.md` | Partial stubs | Scaffold defaults filled in (layer layout, interfaces, error handling, SOLID, security vuln classes). Team-specific sections (system overview, auth model, coverage %) still need filling. |
-| `.claude/commands/` | Live | `/review`, `/standup`, `/db-schema` are functional. |
+| `.claude/rules/*.md` | Partial stubs | Scaffold defaults filled in (layer layout, interfaces, error handling, SOLID, CI gates, security vuln classes). Team-specific sections (system overview, auth model, coverage %) still need filling. |
+| `.claude/commands/` | Live | `/review`, `/standup`, `/db-schema`, `/markitdown` are functional. |
 | `.claude/skills/` | Live | `on-new-file`, `pre-commit-check`, `explain-error`, `c4-architecture`, `solid-principles`, `frontend-design` auto-trigger. |
 | `.mcp.json` | Live config, disabled locally | All three MCP servers are disabled in `settings.local.json`. Confirm env vars are set before assuming MCP works. |
 | `main.go` | Placeholder | GoLand demo code — not the real application entry point. |
@@ -146,6 +146,7 @@ Type `/command-name` in Claude to run a command.
 | `/review` | Review current diff or a file for bugs, conventions, security |
 | `/standup` | Generate standup summary from yesterday's git log |
 | `/db-schema` | Fetch and display DB schema via MCP postgres connection |
+| `/markitdown <path>` | Convert file/URL to Markdown via markitdown, saved to `raw/` |
 
 **To add a command:** create `.claude/commands/your-command.md`. Describe what Claude should do. Use `$ARGUMENTS` for user-provided input.
 
