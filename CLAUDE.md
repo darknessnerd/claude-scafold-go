@@ -27,6 +27,18 @@ See `.claude/rules/04-security.md` for full details.
 
 See `.claude/rules/05-ci.md` for full details.
 
+## Commits
+
+All commit messages must follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/): `type(scope): description`.
+
+Allowed types: `feat` `fix` `docs` `style` `refactor` `perf` `test` `chore` `ci` `build` `revert`
+
+Breaking changes: `feat!:` or `BREAKING CHANGE:` footer.
+
+Enforcement: `.githooks/commit-msg` (local) + `.github/workflows/conventional-commits.yml` (CI).
+Changelog: auto-generated on tag push via `.github/workflows/release.yml` — no local tooling needed.
+Versioning: `./scripts/version-bump.sh [--dry-run]`.
+
 ## What Claude Can Touch
 
 Controlled via `.claude/settings.json`. Summary:

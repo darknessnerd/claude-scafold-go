@@ -25,7 +25,7 @@ Recommended Go layer layout. Rename or split as needed — but keep the import d
 
 > All packages in the table above are under `/internal/` — this is mandatory, not a suggestion. The Go compiler prevents any external module from importing them. New packages that do not need to be imported externally must also be placed under `/internal/`.
 
-> See `.claude/skills/c4-architecture.md` for Mermaid diagram templates at all four C4 levels.
+> See `.claude/skills/c4-architecture/SKILL.md` for Mermaid diagram templates at all four C4 levels.
 
 ## Data Flow
 

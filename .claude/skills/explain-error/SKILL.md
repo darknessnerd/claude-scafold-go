@@ -1,11 +1,7 @@
-# Skill: explain-error
-
-<!--
-  SKILL vs COMMAND: Claude triggers this itself — you never type /explain-error.
-  The Trigger line below is what Claude reads to decide when to apply this skill.
-  Customize: Change the "3 files" threshold if your team prefers a different
-             escalation boundary. Add language-specific error pattern notes if helpful.
--->
+---
+name: explain-error
+description: Diagnose and fix build or test failures. Auto-triggers when a build or test command returns a non-zero exit code. Quotes exact error, identifies location, explains root cause, shows minimal fix.
+---
 
 **Trigger:** A build or test command returns a non-zero exit code.
 

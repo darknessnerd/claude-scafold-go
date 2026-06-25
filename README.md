@@ -23,6 +23,10 @@ Team-shared Claude AI configuration for consistent, safe, context-aware behavior
 | `.claude/settings.json` | Live | Permissions + hooks wired. `go lint` entry is stale — `go lint` was removed; use `golangci-lint`. |
 | `.claude/hooks/pre-bash.sh` | Live | Parses stdin JSON via `jq`. Blocks on `exit 2`. Requires `jq` installed. |
 | `.claude/hooks/post-tool-use.sh` | Live | Parses stdin JSON via `jq`. Writes audit log + stderr alert on Edit/Write/Bash failures. |
+| `.githooks/commit-msg` | Live | Bash hook — rejects non-Conventional Commit messages. Activate with `git config core.hooksPath .githooks`. |
+| `.github/workflows/conventional-commits.yml` | Live | CI: validates PR title + all commit messages on every PR. |
+| `.github/workflows/release.yml` | Live | Creates GitHub Release with changelog on every `v*` tag push. No extra tools needed. |
+| `scripts/version-bump.sh` | Live | Auto-semver tagging from commit history. `--dry-run` flag available. |
 | `.claude/rules/*.md` | Partial stubs | Scaffold defaults filled in (layer layout, interfaces, error handling, SOLID, CI gates, security vuln classes). Team-specific sections (system overview, auth model, coverage %) still need filling. |
 | `.claude/commands/` | Live | `/review`, `/standup`, `/db-schema`, `/markitdown` are functional. |
 | `.claude/skills/` | Live | `on-new-file`, `pre-commit-check`, `explain-error`, `c4-architecture`, `solid-principles`, `frontend-design` auto-trigger. |
@@ -37,7 +41,8 @@ Team-shared Claude AI configuration for consistent, safe, context-aware behavior
 - `CLAUDE.local.md` is gitignored — personal preferences live there, not in `CLAUDE.md`.
 - The four rule files (`.claude/rules/*.md`) are stubs until the team fills them in. Treat missing content as "not defined yet", not as permission to invent conventions.
 - MCP servers (GitHub, Postgres, Datadog) require env vars. If `settings.local.json` has `disabledMcpjsonServers`, those connections are off regardless of `.mcp.json`.
-- Hook scripts must be executable: `chmod +x .claude/hooks/*.sh`.
+- Hook scripts must be executable: `chmod +x .claude/hooks/*.sh && chmod +x .githooks/commit-msg`.
+- Git commit-msg hook must be activated: `git config core.hooksPath .githooks`.
 
 **Known issues to fix before production use:**
 
@@ -106,9 +111,19 @@ Claude reads these every session — keep them accurate. Until filled, Claude tr
 
 ```bash
 chmod +x .claude/hooks/*.sh
+chmod +x .githooks/commit-msg
+chmod +x scripts/version-bump.sh
 ```
 
-Both hooks require `jq`. Install it if not present: `apt install jq` / `brew install jq`.
+Both Claude hooks require `jq`. Install it if not present: `apt install jq` / `brew install jq`.
+
+### 5. Enable the git commit-msg hook
+
+```bash
+git config core.hooksPath .githooks
+```
+
+This enforces [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) on every local commit. The same rules run in CI on PR titles and all commit messages.
 
 ---
 
@@ -166,7 +181,7 @@ Skills are self-activating — Claude applies them without being asked.
 | `frontend-design` | Building or reviewing web UI — design tokens (3-tier), typography constraints, WCAG AA accessibility, component states |
 | `caveman` | User types `/caveman` — activates compressed response mode |
 
-**To add a skill:** create `.claude/skills/your-skill.md`. Start with a `**Trigger:**` line so Claude knows when to apply it.
+**To add a skill:** create `.claude/skills/your-skill/SKILL.md`. Start with a `**Trigger:**` line so Claude knows when to apply it.
 
 ### Versioned skills via GitHub Packages
 
@@ -181,7 +196,7 @@ Skills are distributed as versioned npm packages hosted on GitHub Packages.
 @team/claude-skills  (GitHub Packages, versioned)
         ↓  devDependency of
 consumer repo  →  npm install && npm run setup:claude
-                  writes .claude/skills/caveman.md automatically
+                  writes .claude/skills/caveman/ automatically
 ```
 
 **One-time org setup — add `.npmrc` to every consumer repo:**
@@ -219,7 +234,7 @@ Bump `@team/caveman-skill` version in `packages/claude-skills/package.json`, pub
 
 **`.gitignore` in consumer repos:**
 ```
-.claude/skills/caveman.md   # generated — source of truth is @team/caveman-skill
+.claude/skills/caveman/   # generated — source of truth is @team/caveman-skill
 ```
 
 Package source lives in `packages/claude-skills/`.
@@ -233,8 +248,11 @@ Fork this repo → rename → swap the Go-specific files:
 | File | What to change |
 |---|---|
 | `.claude/settings.json` | Replace `go build/test/vet/fmt` with your toolchain |
-| `.claude/skills/pre-commit-check.md` | Replace `go vet ./...` and `go test ./...` |
+| `.claude/skills/pre-commit-check/SKILL.md` | Replace `go vet ./...` and `go test ./...` |
 | `.claude/rules/03-testing.md` | Replace `go test` with your test runner |
+| `.githooks/commit-msg` | Allowed types list is language-agnostic — keep as-is or extend |
+| `.github/workflows/release.yml` | Changelog grouping is commit-message-based — language-agnostic, keep as-is |
+| `scripts/version-bump.sh` | Bump logic is commit-message-based — language-agnostic, keep as-is |
 | `README.md` badge | Update Go version badge |
 | `go.mod` / `main.go` | Remove or replace with your language entry point |
 
@@ -248,15 +266,22 @@ Hooks run outside Claude, in the shell, on specific events.
 
 | Hook | Event | What it does |
 |---|---|---|
-| `pre-bash.sh` | Before every Bash call | Blocks forbidden command patterns |
-| `post-tool-use.sh` | After every tool call | Audit log + failure alerts |
+| `.claude/hooks/pre-bash.sh` | Before every Bash call | Blocks forbidden command patterns |
+| `.claude/hooks/post-tool-use.sh` | After every tool call | Audit log + failure alerts |
+| `.githooks/commit-msg` | On every `git commit` | Rejects non-Conventional Commit messages |
 
-Hooks must be executable:
+Make executable:
 ```bash
 chmod +x .claude/hooks/*.sh
+chmod +x .githooks/commit-msg
 ```
 
-**Note:** Claude Code passes hook payloads as JSON via stdin, not positional args. Both hook scripts need updating to parse stdin with `jq`. See Known Issues in the Agent Session Context section above.
+Activate the git hook:
+```bash
+git config core.hooksPath .githooks
+```
+
+**Note:** Claude Code passes hook payloads as JSON via stdin, not positional args. Both Claude hooks need updating to parse stdin with `jq`. See Known Issues in the Agent Session Context section above.
 
 ---
 
@@ -280,11 +305,46 @@ Both are always loaded. Keep `CLAUDE.md` as an index; put specifics in rules.
 
 ---
 
+## Conventional Commits
+
+All commits and PR titles must follow [Conventional Commits v1.0.0](https://www.conventionalcommits.org/en/v1.0.0/).
+
+Format: `type(scope): description`
+
+Allowed types: `feat` `fix` `docs` `style` `refactor` `perf` `test` `chore` `ci` `build` `revert`
+
+Breaking changes: append `!` to the type (`feat!:`) or add `BREAKING CHANGE:` in the footer.
+
+### Enforcement layers
+
+| Layer | What checks | Setup needed |
+|-------|-------------|-------------|
+| `git commit` hook | Every local commit message | `git config core.hooksPath .githooks` |
+| GitHub Actions | PR title + all commit messages in the PR | Runs automatically on push |
+
+### Changelog
+
+Generated automatically on each tag push by `.github/workflows/release.yml`. No local tooling needed.
+
+Push a tag → GitHub Release is created with a changelog grouped by commit type (Features, Bug Fixes, etc.). Breaking changes are surfaced at the top.
+
+### Version bumping
+
+```bash
+./scripts/version-bump.sh            # creates a new semver tag
+./scripts/version-bump.sh --dry-run  # preview what tag would be created
+```
+
+Semver rules: `BREAKING CHANGE` → major bump, `feat` → minor bump, anything else → patch.
+
+---
+
 ## Adding a New Team Member
 
 1. Clone repo
 2. Copy env var template (share out-of-band, never commit)
 3. Edit `CLAUDE.local.md` with personal preferences
-4. Run `chmod +x .claude/hooks/*.sh`
-5. Check `settings.local.json` — remove any `disabledMcpjsonServers` you need active
-6. Start Claude — configuration is automatic
+4. Run `chmod +x .claude/hooks/*.sh && chmod +x .githooks/commit-msg && chmod +x scripts/version-bump.sh`
+5. Run `git config core.hooksPath .githooks` — activates Conventional Commits enforcement
+6. Check `settings.local.json` — remove any `disabledMcpjsonServers` you need active
+7. Start Claude — configuration is automatic

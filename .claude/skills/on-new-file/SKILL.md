@@ -1,11 +1,7 @@
-# Skill: on-new-file
-
-<!--
-  SKILL vs COMMAND: Claude triggers this itself — you never type /on-new-file.
-  The Trigger line below is what Claude reads to decide when to apply this skill.
-  Customize: Add steps for your own file header template, license boilerplate,
-             or any convention your team checks on every new file.
--->
+---
+name: on-new-file
+description: Post-creation checklist for new source files. Auto-triggers when Claude creates a new file. Verifies naming, package declaration, headers, secrets, and test file presence.
+---
 
 **Trigger:** Claude just created a new source file.
 

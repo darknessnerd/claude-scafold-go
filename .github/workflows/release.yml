@@ -1,0 +1,99 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog from Conventional Commits
+        id: changelog
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          # Find the previous tag
+          prev_tag=$(git tag --sort=-version:refname | grep -E '^v[0-9]' | sed -n '2p')
+
+          if [[ -z "$prev_tag" ]]; then
+            range="HEAD"
+            range_label="initial release"
+          else
+            range="${prev_tag}..HEAD"
+            range_label="since ${prev_tag}"
+          fi
+
+          # Group commits by type
+          declare -A groups
+          groups[feat]="Features"
+          groups[fix]="Bug Fixes"
+          groups[perf]="Performance"
+          groups[refactor]="Refactoring"
+          groups[docs]="Documentation"
+          groups[test]="Testing"
+          groups[ci]="CI/CD"
+          groups[build]="Build"
+          groups[chore]="Miscellaneous"
+          groups[revert]="Reverts"
+
+          body=""
+          breaking=""
+
+          for type in feat fix perf refactor docs test ci build chore revert; do
+            section=""
+            while IFS= read -r line; do
+              [[ -z "$line" ]] && continue
+              hash="${line%% *}"
+              msg="${line#* }"
+
+              # Extract breaking changes
+              if echo "$msg" | grep -qE '^'"$type"'(\([^)]+\))?!:'; then
+                scope=$(echo "$msg" | grep -oE '\([^)]+\)' | tr -d '()')
+                desc=$(echo "$msg" | sed 's/^[^:]*: //')
+                breaking+="- ${scope:+**${scope}:** }${desc} ⚠️ BREAKING ([${hash:0:7}](../../commit/${hash}))"$'\n'
+              fi
+
+              # Normal entry for this type
+              if echo "$msg" | grep -qE '^'"$type"'(\([^)]+\))?(!)?: '; then
+                scope=$(echo "$msg" | grep -oE '\([^)]+\)' | tr -d '()')
+                desc=$(echo "$msg" | sed 's/^[^:]*: //')
+                section+="- ${scope:+**${scope}:** }${desc} ([${hash:0:7}](../../commit/${hash}))"$'\n'
+              fi
+            done < <(git log "$range" --pretty=format:"%H %s" 2>/dev/null)
+
+            if [[ -n "$section" ]]; then
+              body+="### ${groups[$type]}"$'\n'"${section}"$'\n'
+            fi
+          done
+
+          if [[ -n "$breaking" ]]; then
+            body="### ⚠️ Breaking Changes"$'\n'"${breaking}"$'\n'"${body}"
+          fi
+
+          if [[ -z "$body" ]]; then
+            body="_No conventional commits found ${range_label}._"
+          fi
+
+          # Write to file to avoid quoting issues
+          printf '%s' "$body" > /tmp/changelog.md
+          echo "changelog_file=/tmp/changelog.md" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --notes-file "${{ steps.changelog.outputs.changelog_file }}" \
+            --verify-tag

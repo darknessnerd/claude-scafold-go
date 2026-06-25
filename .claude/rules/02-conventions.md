@@ -10,7 +10,7 @@
 - Interfaces: noun or noun phrase (`Repository`, `Notifier`), not `IRepository` or `RepositoryInterface`
 - Constructors: `New<Type>` returning the interface, not the concrete type
 
-> See `.claude/skills/solid-principles.md` for package naming rules derived from SRP.
+> See `.claude/skills/solid-principles/SKILL.md` for package naming rules derived from SRP.
 
 ## Interfaces
 

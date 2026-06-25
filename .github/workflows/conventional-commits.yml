@@ -1,0 +1,64 @@
+name: Conventional Commits
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  pr-title:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check PR title follows Conventional Commits
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert)(\([a-z0-9_/-]+\))?(!)?: .{1,72}$'
+          if ! echo "$PR_TITLE" | grep -qE "$pattern"; then
+            echo "PR title does not follow Conventional Commits."
+            echo ""
+            echo "Got: $PR_TITLE"
+            echo ""
+            echo "Expected: type(scope): description"
+            echo "Allowed types: feat fix docs style refactor perf test chore ci build revert"
+            echo "Examples:"
+            echo "  feat(auth): add JWT refresh endpoint"
+            echo "  fix(repository): handle nil pointer in user.Get"
+            echo "  chore!: drop Go 1.20 support"
+            exit 1
+          fi
+          echo "PR title OK: $PR_TITLE"
+
+  commit-messages:
+    name: Validate commit messages
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check all commits in PR
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          pattern='^(feat|fix|docs|style|refactor|perf|test|chore|ci|build|revert)(\([a-z0-9_/-]+\))?(!)?: .{1,72}$'
+          failed=0
+
+          while IFS= read -r msg; do
+            # Skip merge commits, fixup, squash
+            if echo "$msg" | grep -qE '^(Merge|fixup!|squash!)'; then
+              continue
+            fi
+            if ! echo "$msg" | grep -qE "$pattern"; then
+              echo "FAIL: $msg"
+              failed=1
+            fi
+          done < <(git log --pretty=format:"%s" "${BASE_SHA}..${HEAD_SHA}")
+
+          if [[ $failed -eq 1 ]]; then
+            echo ""
+            echo "One or more commits do not follow Conventional Commits."
+            exit 1
+          fi
+          echo "All commit messages OK."

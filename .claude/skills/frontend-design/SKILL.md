@@ -253,7 +253,7 @@ Not the hues — the relationships. The ratio of primary to neutral, the tempera
 
 ## 6. Motion
 
-**Note:** The research pass produced no surviving verified claims on motion principles. The web.dev prefers-reduced-motion article and Josh Comeau's CSS transition guides were fetched but yielded no adversarially-confirmed claims. Apply motion conservatively and verify your approach against current sources.
+**Note:** The research pass produced no surviving verified claims on motion principles. Apply motion conservatively and verify your approach against current sources.
 
 Minimum known-safe practice:
 

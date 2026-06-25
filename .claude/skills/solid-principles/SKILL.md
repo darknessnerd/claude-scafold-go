@@ -1,4 +1,7 @@
-# Skill: solid-principles
+---
+name: solid-principles
+description: Apply and audit SOLID design principles using Go idioms. Use when creating a new package, designing an interface, reviewing a component for structure, or when the user asks about design quality.
+---
 
 **Trigger:** Claude is creating a new package, designing an interface, reviewing a component for structure, or the user asks about design quality.
 

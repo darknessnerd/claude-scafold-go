@@ -1,4 +1,7 @@
-# Skill: c4-architecture
+---
+name: c4-architecture
+description: Produce C4 architecture diagrams in Mermaid (Context, Container, Component, Code). Use when designing, diagramming, documenting, or reviewing system architecture — or filling in .claude/rules/01-architecture.md.
+---
 
 **Trigger:** User asks to design, diagram, document, or review system architecture — or when filling in `.claude/rules/01-architecture.md`.
 
