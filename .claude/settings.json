@@ -13,10 +13,10 @@
       "Bash(go build:*)",
       "Bash(go test:*)",
       "Bash(go vet:*)",
-      "Bash(go lint:*)",
       "Bash(go fmt:*)",
       "Bash(go mod:*)",
       "Bash(golangci-lint:*)",
+      "Bash(go-test-coverage:*)",
       "Bash(gofumpt:*)",
       "Bash(markitdown:*)",
 

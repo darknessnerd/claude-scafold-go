@@ -20,10 +20,11 @@ Team-shared Claude AI configuration for consistent, safe, context-aware behavior
 
 | Path | Status | Notes |
 |------|--------|-------|
-| `.claude/settings.json` | Live | Permissions + hooks wired. `go lint` entry is stale — `go lint` was removed; use `golangci-lint`. |
+| `.claude/settings.json` | Live | Permissions + hooks wired. |
 | `.claude/hooks/pre-bash.sh` | Live | Parses stdin JSON via `jq`. Blocks on `exit 2`. Requires `jq` installed. |
 | `.claude/hooks/post-tool-use.sh` | Live | Parses stdin JSON via `jq`. Writes audit log + stderr alert on Edit/Write/Bash failures. |
 | `.githooks/commit-msg` | Live | Bash hook — rejects non-Conventional Commit messages. Activate with `git config core.hooksPath .githooks`. |
+| `.github/workflows/ci.yml` | Live | 7-gate CI pipeline: format → vet → lint → test → race → coverage → integration. |
 | `.github/workflows/conventional-commits.yml` | Live | CI: validates PR title + all commit messages on every PR. |
 | `.github/workflows/release.yml` | Live | Creates GitHub Release with changelog on every `v*` tag push. No extra tools needed. |
 | `scripts/version-bump.sh` | Live | Auto-semver tagging from commit history. `--dry-run` flag available. |
@@ -31,24 +32,25 @@ Team-shared Claude AI configuration for consistent, safe, context-aware behavior
 | `.claude/commands/` | Live | `/review`, `/standup`, `/db-schema`, `/markitdown` are functional. |
 | `.claude/skills/` | Live | `on-new-file`, `pre-commit-check`, `explain-error`, `c4-architecture`, `solid-principles`, `frontend-design` auto-trigger. |
 | `.mcp.json` | Live config, disabled locally | All three MCP servers are disabled in `settings.local.json`. Confirm env vars are set before assuming MCP works. |
-| `main.go` | Placeholder | GoLand demo code — not the real application entry point. |
-| `go.mod` | Placeholder | Module named `agent-conf-skeleton`. Rename when forking. |
+| `main.go` | Placeholder | GoLand demo code — replace with `cmd/main.go` wiring stub. |
+| `cmd/main.go` | Stub | Wiring-only entry point. Fill in real dependencies. |
+| `internal/` | Stub | Layer directories created (`domain`, `service`, `repository`, `handler`). Fill in business logic. |
+| `go.mod` | Placeholder | Module named `github.com/your-org/your-repo`. Rename when forking. |
 
 **Key invariants — maintain these when editing:**
 
 - Never write secrets, tokens, or credentials to any file.
 - Never modify `.env` files (blocked by hook and deny list).
 - `CLAUDE.local.md` is gitignored — personal preferences live there, not in `CLAUDE.md`.
-- The four rule files (`.claude/rules/*.md`) are stubs until the team fills them in. Treat missing content as "not defined yet", not as permission to invent conventions.
+- The five rule files (`.claude/rules/*.md`) are stubs until the team fills them in. Treat missing content as "not defined yet", not as permission to invent conventions.
 - MCP servers (GitHub, Postgres, Datadog) require env vars. If `settings.local.json` has `disabledMcpjsonServers`, those connections are off regardless of `.mcp.json`.
 - Hook scripts must be executable: `chmod +x .claude/hooks/*.sh && chmod +x .githooks/commit-msg`.
 - Git commit-msg hook must be activated: `git config core.hooksPath .githooks`.
 
 **Known issues to fix before production use:**
 
-1. `settings.json` — replace `Bash(go lint:*)` with `Bash(golangci-lint:*)`.
-2. `main.go` — remove GoLand TIP comments; fix `fmt.Println` → `fmt.Printf` for format verbs.
-3. Rules stubs — fill team-specific sections: system overview, auth model, coverage expectations.
+1. `main.go` — remove GoLand TIP comments; replace with real wiring (see `cmd/main.go` for the scaffold stub).
+2. Rules stubs — fill team-specific sections: system overview, auth model, coverage expectations.
 
 ---
 
@@ -103,6 +105,7 @@ Each file in `.claude/rules/` has placeholder sections. Fill them in once:
 .claude/rules/02-conventions.md   → naming, file layout, forbidden patterns
 .claude/rules/03-testing.md       → framework, coverage, what must be tested
 .claude/rules/04-security.md      → secret handling, auth model, vuln classes
+.claude/rules/05-ci.md            → CI gate config, linter list, coverage thresholds
 ```
 
 Claude reads these every session — keep them accurate. Until filled, Claude treats them as undefined.
@@ -281,7 +284,7 @@ Activate the git hook:
 git config core.hooksPath .githooks
 ```
 
-**Note:** Claude Code passes hook payloads as JSON via stdin, not positional args. Both Claude hooks need updating to parse stdin with `jq`. See Known Issues in the Agent Session Context section above.
+Both Claude hooks parse payloads from stdin as JSON via `jq`.
 
 ---
 

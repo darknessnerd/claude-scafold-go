@@ -1,0 +1,15 @@
+# go-test-coverage configuration
+# https://github.com/vladopajic/go-test-coverage
+#
+# Run: go test -coverprofile=coverage.out ./... && go-test-coverage --config=.testcoverage.yml
+
+# Total line coverage floor (%)
+threshold:
+  file:    0     # no per-file floor — reviewed in PR
+  package: 0     # no per-package floor — domain/service enforced by test review
+  total:   80    # 80% overall minimum (matches 03-testing.md)
+
+# Exclude generated files and stubs
+exclude:
+  paths:
+    - ^cmd/         # wiring only — not unit-testable in isolation

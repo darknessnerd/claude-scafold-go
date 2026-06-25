@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  ci:
+    name: Build & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      # Gate 1 — Format
+      - name: Format (gofumpt)
+        run: |
+          go install mvdan.cc/gofumpt@latest
+          gofumpt -l . | grep . && echo "Formatting issues found" && exit 1 || true
+
+      # Gate 2 — Vet
+      - name: Vet
+        run: go vet ./...
+
+      # Gate 3 — Lint
+      - name: Lint (golangci-lint)
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+
+      # Gate 4 — Unit tests
+      - name: Test
+        run: go test ./...
+
+      # Gate 5 — Race detector
+      - name: Test (race)
+        run: go test -race ./...
+
+      # Gate 6 — Coverage
+      - name: Coverage
+        run: |
+          go test -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out
+          go install github.com/vladopajic/go-test-coverage/v2@latest
+          go-test-coverage --config=.testcoverage.yml
+
+      # Gate 7 — Integration tests (skipped if no integration test files exist)
+      - name: Integration tests
+        run: |
+          if find . -name '*_test.go' | xargs grep -l '//go:build integration' 2>/dev/null | grep -q .; then
+            go test -tags=integration -race ./test/integration/...
+          else
+            echo "No integration tests found — skipping."
+          fi

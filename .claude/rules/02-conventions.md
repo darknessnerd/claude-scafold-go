@@ -117,4 +117,4 @@ Blank line between each group. `goimports` or `gofumpt` handles this automatical
 - No `init()` functions that perform I/O or have side effects
 - No `// nolint` on security-related linter warnings without team approval (see `04-security.md`)
 - No type switches on concrete types to vary behavior — use interface methods instead (OCP violation)
-- Constructors must accept interfaces, not concrete types (`func New(repo domain.UserReader)` not `func New(db *PostgresRepo)`)
+- Constructors must accept interfaces, not concrete types (`func New(repo userReader)` not `func New(db *PostgresRepo)`) — the interface is defined in the consuming package, not in `domain`
